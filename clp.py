@@ -162,7 +162,7 @@ def calculate_wab(tail, pax_zones, bags, fuel):
         "steps": calculation_steps  # Add calculation steps to result
     }
 
-def draw_aircraft_visualization(zone_arms, compartment_arms, fuel_arm, oew_arm, view='side'):
+def draw_aircraft_visualization(zone_arms, compartment_arms, fuel_arm, oew_arm, view='side', cg=None, cg_min=None, cg_max=None):
     # A220-300 actual dimensions (in feet)
     # Length: 127.0 ft
     # Wingspan: 115.2 ft
@@ -257,6 +257,26 @@ def draw_aircraft_visualization(zone_arms, compartment_arms, fuel_arm, oew_arm, 
         y_pos = 0 if view == 'top' else nose_height + fuselage_height/2
         ax.plot(arm, y_pos, 'o', color=color, label=f'{label} ({arm} ft)')
         ax.text(arm, y_pos + (2 if view == 'top' else 2), label, ha='center', va='bottom', color=color)
+    
+    # Add CG limits and current CG if provided
+    if cg_min is not None and cg_max is not None:
+        # Draw CG limit lines
+        ax.axvline(x=cg_min, color='red', linestyle=':', linewidth=2, label=f'CG Min ({cg_min} ft)')
+        ax.axvline(x=cg_max, color='red', linestyle=':', linewidth=2, label=f'CG Max ({cg_max} ft)')
+        
+        # Fill the safe CG range
+        y_bottom = -wing_span/2 - 10 if view == 'top' else 0
+        y_top = wing_span/2 + 10 if view == 'top' else nose_height + fuselage_height + 10
+        ax.fill_between([cg_min, cg_max], [y_bottom, y_bottom], [y_top, y_top], 
+                       color='green', alpha=0.1, label='Safe CG Range')
+    
+    if cg is not None:
+        # Draw current CG line
+        ax.axvline(x=cg, color='blue', linewidth=2, label=f'Current CG ({cg:.2f} ft)')
+        # Add a marker at the CG point
+        y_pos = 0 if view == 'top' else nose_height + fuselage_height/2
+        ax.plot(cg, y_pos, 'o', color='blue', markersize=10)
+        ax.text(cg, y_pos + (2 if view == 'top' else 2), 'CG', ha='center', va='bottom', color='blue')
     
     # Add legend
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
@@ -593,7 +613,10 @@ with tab1:
         s["compartment_arms"],
         s["fuel_arm"],
         s["aircraft_data"][tail]["OEW_ARM"],
-        view='top' if view == "Top View" else 'side'
+        view='top' if view == "Top View" else 'side',
+        cg=result["cg"],
+        cg_min=s["CG_MIN"],
+        cg_max=s["CG_MAX"]
     )
     st.pyplot(fig, use_container_width=True)
 
