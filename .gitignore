@@ -1,0 +1,36 @@
+# Python Virtual Environment
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dependency Files
+*.egg-info/
+dist/
+build/
+*.egg
+
+# macOS Artifacts
+.DS_Store
+
+# Editor/IDE Files
+*.swp
+*~
+.vscode/
+.idea/
+
+# Logs and Temporary Files
+*.log
+*.tmp
+
+# Streamlit-Specific
+.streamlit/
+
+# Generated Outputs (if any)
+*.png
+*.jpg
+*.pdf
+
+# Miscellaneous
+*.bak
+*.cache

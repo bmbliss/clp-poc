@@ -1,7 +1,3 @@
-Below is a comprehensive `README.md` for your Airbus A220 Central Load Planning (CLP) Proof of Concept (PoC) using Streamlit. It encapsulates our discussions, details the calculations, inputs, and purpose of the PoC, and includes the Streamlit app code with relevant snippets. This should serve as a standalone document you can share with coworkers to explain the project, demonstrate the in-house solution, and invite feedback.
-
----
-
 # Airbus A220 Central Load Planning (CLP) Proof of Concept
 
 ## Overview
@@ -99,11 +95,11 @@ This PoC uses Streamlit for a web-based, interactive demo. It calculates W&B, op
    ```
 2. **Run**:
    ```bash
-   streamlit run clp_poc.py
+   streamlit run clp.py
    ```
 3. **Access**: Open `http://localhost:8501` in a browser.
 
-### Code: `clp_poc.py`
+### Code: `clp.py`
 ```python
 import streamlit as st
 import pandas as pd
@@ -300,4 +296,50 @@ This PoC proves an in-house CLP tool can calculate W&B and optimize loads for an
 ### Notes for You
 - **Save**: Copy this into `README.md` in your project folder.
 - **Customize**: Update aircraft data with real A220 values when available.
-- **Share**: Pair with `clp_poc.py` in a GitHub repo or run locally for demos.
+- **Share**: Pair with `clp.py` in a GitHub repo or run locally for demos.
+
+## Dev Notes
+
+### MacBook Quick Start with `venv`
+
+```markdown
+## MacBook Quick Start with `venv`
+
+To set up and run the PoC on a MacBook using a virtual environment:
+
+1. **Create and Activate `venv`** (first time only):
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+   - You'll see `(venv)` in your terminal.
+
+2. **Install Dependencies** (first time or after updates):
+   ```bash
+   pip install -r requirements.txt
+   ```
+   - Assumes `requirements.txt` exists (e.g., `streamlit`, `matplotlib`, `pandas`).
+
+3. **Run the App**:
+   ```bash
+   streamlit run clp.py
+   ```
+   - Opens in your browser at `http://localhost:8501`.
+
+4. **Stop and Deactivate**:
+   - Ctrl+C to stop Streamlit.
+   - `deactivate` to exit `venv`.
+
+**Tip**: If you update libraries, regenerate `requirements.txt` with:
+```bash
+pip freeze > requirements.txt
+```
+```
+
+---
+
+### Notes
+- **Mac-Specific**: Uses `python3` (common on macOS) and `source venv/bin/activate` (Unix-style).
+- **Short**: Fits your “easier to remember” goal—four steps, minimal fluff.
+- **Placement**: Add this under the existing **Setup** section or as a standalone **MacBook Quick Start** section.
+
