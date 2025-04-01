@@ -43,7 +43,7 @@ The PoC performs these aviation-standard calculations:
 
 1. **Zero Fuel Weight (ZFW)**:
    - Formula: `ZFW = OEW + Pax Weight + Bag Weight`
-   - Pax Weight = (Adults × 200 lbs) + (Kids × 80 lbs) per zone.
+   - Pax Weight = (Adults × 200 lbs) + (Children × 80 lbs) per zone.
    - Bag Weight = (Standard × 50 lbs) + (Heavy × 70 lbs).
 
 2. **Total Weight**:
@@ -73,7 +73,7 @@ The PoC performs these aviation-standard calculations:
 The PoC accepts these inputs, simplified from full flight data:
 - **Aircraft Tail**: Dropdown (e.g., N001, N002) with OEW and arm.
 - **Passengers by Zone**:
-  - Zone A, B, C: Adults (200 lbs), Kids (80 lbs).
+  - Zone A, B, C: Adults (200 lbs), Children (80 lbs).
 - **Bags**:
   - Standard (50 lbs), Heavy (70 lbs).
 - **Fuel**: Total lbs (e.g., 27,000).
@@ -121,7 +121,7 @@ def calculate_wab(tail, pax_zones, bags, fuel):
     weights = [aircraft_data[tail]["OEW"], fuel]
     arms = [aircraft_data[tail]["OEW_ARM"], 70]
     for zone, counts in pax_zones.items():
-        pax_weight = counts.get("adults", 0) * 200 + counts.get("kids", 0) * 80
+        pax_weight = counts.get("adults", 0) * 200 + counts.get("children", 0) * 80
         weights.append(pax_weight)
         arms.append(zone_arms[zone])
     bag_weight = bags["standard"] * bag_weights["standard"] + bags["heavy"] * bag_weights["heavy"]
@@ -154,17 +154,17 @@ st.subheader("Passengers by Zone")
 col1, col2, col3 = st.columns(3)
 with col1:
     a_adults = st.number_input("Zone A Adults", min_value=0, value=30)
-    a_kids = st.number_input("Zone A Kids", min_value=0, value=5)
+    a_children = st.number_input("Zone A Children", min_value=0, value=5)
 with col2:
     b_adults = st.number_input("Zone B Adults", min_value=0, value=40)
-    b_kids = st.number_input("Zone B Kids", min_value=0, value=0)
+    b_children = st.number_input("Zone B Children", min_value=0, value=0)
 with col3:
     c_adults = st.number_input("Zone C Adults", min_value=0, value=20)
-    c_kids = st.number_input("Zone C Kids", min_value=0, value=0)
+    c_children = st.number_input("Zone C Children", min_value=0, value=0)
 pax_zones = {
-    "A": {"adults": a_adults, "kids": a_kids},
-    "B": {"adults": b_adults, "kids": b_kids},
-    "C": {"adults": c_adults, "kids": c_kids}
+    "A": {"adults": a_adults, "children": a_children},
+    "B": {"adults": b_adults, "children": b_children},
+    "C": {"adults": c_adults, "children": c_children}
 }
 
 st.subheader("Bags")
@@ -231,7 +231,7 @@ st.sidebar.write("- Expand with flight data for validation.")
 ## Inputs and Outputs
 ### Inputs
 - **Tail Number**: Select from `N001`, `N002` (mock OEW, arms).
-- **Pax by Zone**: Adults (200 lbs), Kids (80 lbs) for Zones A, B, C.
+- **Pax by Zone**: Adults (200 lbs), Children (80 lbs) for Zones A, B, C.
 - **Bags**: Standard (50 lbs), Heavy (70 lbs).
 - **Fuel**: Total lbs.
 
@@ -302,7 +302,6 @@ This PoC proves an in-house CLP tool can calculate W&B and optimize loads for an
 
 ### MacBook Quick Start with `venv`
 
-```markdown
 ## MacBook Quick Start with `venv`
 
 To set up and run the PoC on a MacBook using a virtual environment:
@@ -333,7 +332,6 @@ To set up and run the PoC on a MacBook using a virtual environment:
 **Tip**: If you update libraries, regenerate `requirements.txt` with:
 ```bash
 pip freeze > requirements.txt
-```
 ```
 
 ---

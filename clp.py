@@ -18,7 +18,7 @@ def calculate_wab(tail, pax_zones, bags, fuel):
     weights = [aircraft_data[tail]["OEW"], fuel]
     arms = [aircraft_data[tail]["OEW_ARM"], 70]
     for zone, counts in pax_zones.items():
-        pax_weight = counts.get("adults", 0) * 200 + counts.get("kids", 0) * 80
+        pax_weight = counts.get("adults", 0) * 200 + counts.get("children", 0) * 80
         weights.append(pax_weight)
         arms.append(zone_arms[zone])
     bag_weight = bags["standard"] * bag_weights["standard"] + bags["heavy"] * bag_weights["heavy"]
@@ -51,17 +51,17 @@ st.subheader("Passengers by Zone")
 col1, col2, col3 = st.columns(3)
 with col1:
     a_adults = st.number_input("Zone A Adults", min_value=0, value=30)
-    a_kids = st.number_input("Zone A Kids", min_value=0, value=5)
+    a_children = st.number_input("Zone A Children", min_value=0, value=5)
 with col2:
     b_adults = st.number_input("Zone B Adults", min_value=0, value=40)
-    b_kids = st.number_input("Zone B Kids", min_value=0, value=0)
+    b_children = st.number_input("Zone B Children", min_value=0, value=0)
 with col3:
     c_adults = st.number_input("Zone C Adults", min_value=0, value=20)
-    c_kids = st.number_input("Zone C Kids", min_value=0, value=0)
+    c_children = st.number_input("Zone C Children", min_value=0, value=0)
 pax_zones = {
-    "A": {"adults": a_adults, "kids": a_kids},
-    "B": {"adults": b_adults, "kids": b_kids},
-    "C": {"adults": c_adults, "kids": c_kids}
+    "A": {"adults": a_adults, "children": a_children},
+    "B": {"adults": b_adults, "children": b_children},
+    "C": {"adults": c_adults, "children": c_children}
 }
 
 st.subheader("Bags")
