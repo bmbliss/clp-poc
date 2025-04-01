@@ -47,21 +47,57 @@ s = st.session_state.settings
 
 # W&B and Optimization Logic
 def calculate_wab(tail, pax_zones, bags, fuel):
+    # Initialize values to store calculation steps for display
+    calculation_steps = {}
+    
+    # Aircraft base weights
     weights = [s["aircraft_data"][tail]["OEW"], fuel]
     arms = [s["aircraft_data"][tail]["OEW_ARM"], s["fuel_arm"]]
+    
+    # Calculate passenger weights by zone
+    pax_weights_by_zone = {}
     for zone, counts in pax_zones.items():
-        pax_weight = counts.get("adults", 0) * s["PAX_WEIGHT_ADULT"] + counts.get("children", 0) * s["PAX_WEIGHT_CHILD"] + counts.get("infants", 0) * s["PAX_WEIGHT_INFANT"]
+        adults = counts.get("adults", 0)
+        children = counts.get("children", 0)
+        infants = counts.get("infants", 0)
+        
+        # Store steps for display
+        pax_weights_by_zone[zone] = {
+            "adults": adults * s["PAX_WEIGHT_ADULT"],
+            "children": children * s["PAX_WEIGHT_CHILD"],
+            "infants": infants * s["PAX_WEIGHT_INFANT"]
+        }
+        
+        pax_weight = pax_weights_by_zone[zone]["adults"] + pax_weights_by_zone[zone]["children"] + pax_weights_by_zone[zone]["infants"]
         weights.append(pax_weight)
         arms.append(s["zone_arms"][zone])
-    bag_weight = bags["standard"] * s["bag_weights"]["standard"] + bags["heavy"] * s["bag_weights"]["heavy"]
+    
+    # Calculate bag weights
+    std_bag_weight = bags["standard"] * s["bag_weights"]["standard"]
+    heavy_bag_weight = bags["heavy"] * s["bag_weights"]["heavy"]
+    bag_weight = std_bag_weight + heavy_bag_weight
+    
+    # Calculate ZFW
     zfw = sum(weights[:-1]) + bag_weight
+    
+    # Initial bag distribution (all forward)
     distrib = {"fwd": bag_weight, "aft": 0}
     weights.extend([distrib["fwd"], distrib["aft"]])
     arms.extend([s["compartment_arms"]["fwd"], s["compartment_arms"]["aft"]])
+    
+    # Calculate total weight and initial CG
     total_weight = sum(weights)
-    cg = sum(w * a for w, a in zip(weights, arms)) / total_weight
+    
+    # Calculate moments and store for display
+    moments = [w * a for w, a in zip(weights, arms)]
+    total_moment = sum(moments)
+    
+    # Calculate initial CG
+    initial_cg = total_moment / total_weight
     
     # CG optimization
+    cg = initial_cg
+    move = 0
     if cg < s["target_cg"]:  # Optimize for target CG (fuel savings)
         fwd_arm = s["compartment_arms"]["fwd"]
         aft_arm = s["compartment_arms"]["aft"]
@@ -70,8 +106,11 @@ def calculate_wab(tail, pax_zones, bags, fuel):
         distrib["aft"] += move
         weights[-2:] = [distrib["fwd"], distrib["aft"]]
         total_weight = sum(weights)
-        cg = sum(w * a for w, a in zip(weights, arms)) / total_weight
+        moments = [w * a for w, a in zip(weights, arms)]
+        total_moment = sum(moments)
+        cg = total_moment / total_weight
     
+    # Lookup stab trim
     stab = s["stab_table"].get(int(cg), 0)
     
     # Initialize additional checks
@@ -96,6 +135,19 @@ def calculate_wab(tail, pax_zones, bags, fuel):
     if landing_limit and landing_weight > landing_limit:
         landing_ok = False
     
+    # Store calculation steps for display
+    calculation_steps = {
+        "pax_weights": pax_weights_by_zone,
+        "std_bag_weight": std_bag_weight,
+        "heavy_bag_weight": heavy_bag_weight,
+        "oew": s["aircraft_data"][tail]["OEW"],
+        "fuel": fuel,
+        "initial_cg": initial_cg,
+        "bag_move": move,
+        "moments": moments,
+        "total_moment": total_moment
+    }
+    
     return {
         "zfw": zfw, 
         "total_weight": total_weight, 
@@ -105,18 +157,21 @@ def calculate_wab(tail, pax_zones, bags, fuel):
         "landing_weight": landing_weight if landing_limit else None,
         "safe": (total_weight <= mtow_limit and 
                 s["CG_MIN"] <= cg <= s["CG_MAX"] and 
-                zfw_ok and landing_ok)
+                zfw_ok and landing_ok),
+        "steps": calculation_steps  # Add calculation steps to result
     }
 
 # App title
 st.title("A220 Central Load Planning PoC")
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Main", "Explanatory Notes", "Settings"])
+tab1, tab2, tab3 = st.tabs(["Calculations", "Explanatory Notes", "Settings"])
 
 with tab1:
     # Main Tab - Inputs and Calculations
     st.write("Enter flight details to calculate W&B and load instructions.")
+
+    st.subheader("Aircraft")
 
     # Inputs
     tail = st.selectbox("Tail Number", list(s["aircraft_data"].keys()))
@@ -124,6 +179,24 @@ with tab1:
     # Show real data notice if using real data
     if tail in ["A220-1", "A220-2"]:
         st.success("Using actual A220 aircraft weight data. Note that arm positions still use mock values.")
+    
+    # Display selected aircraft data in a clean format
+    aircraft_data = s["aircraft_data"][tail]
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("**Aircraft Data Summary**")
+        st.write(f"**OEW**: {aircraft_data['OEW']:,.0f} lbs")
+        if "ZFW_LIMIT" in aircraft_data:
+            st.write(f"**ZFW Limit**: {aircraft_data['ZFW_LIMIT']:,.0f} lbs")
+        st.write(f"**MTOW**: {aircraft_data.get('MTOW_LIMIT', s['MTOW']):,.0f} lbs")
+    with col2:
+        st.write("**⠀**")  # Invisible character for alignment
+        if "LANDING_LIMIT" in aircraft_data:
+            st.write(f"**Landing Limit**: {aircraft_data['LANDING_LIMIT']:,.0f} lbs")
+        st.write(f"**CG Limits**: {s['CG_MIN']} - {s['CG_MAX']} ft")
+        st.write(f"**Target CG**: {s['target_cg']} ft")
+    
+    st.markdown("---")
     
     st.subheader("Passengers by Zone")
     col1, col2, col3 = st.columns(3)
@@ -161,44 +234,109 @@ with tab1:
         
     fuel = st.number_input("Fuel (lbs)", min_value=0.0, value=default_fuel, step=100.0)
 
+    st.markdown("---")
+
     # Calculate and Display Results
     result = calculate_wab(tail, pax_zones, bags, fuel)
-    st.subheader("Results")
     
     # Determine MTOW limit based on aircraft selected
     mtow_limit = s["aircraft_data"][tail].get("MTOW_LIMIT", s["MTOW"])
     
-    st.write(f"**ZFW**: {result['zfw']:.0f} lbs")
+    # Extract calculation steps for display
+    steps = result["steps"]
     
-    # Show ZFW limit if available
+    st.subheader("Calculations and Results")
+    
+    # Zero Fuel Weight Calculation
+    st.markdown("#### Zero Fuel Weight (ZFW)")
+    st.markdown("*The weight of the aircraft with all payload but without fuel, used to ensure structural limits are not exceeded.*")
+    zfw_formula = "ZFW = OEW + Pax Weights + Bag Weight"
+    
+    # Calculate total passenger weight by summing all zone weights
+    total_pax_weight = sum(sum(zone_weights.values()) for zone_weights in steps["pax_weights"].values())
+    
+    # Display the formula with actual values
+    zfw_calc = f"""
+    ZFW = {steps['oew']:,.0f} + {total_pax_weight:,.0f} + {(steps['std_bag_weight'] + steps['heavy_bag_weight']):,.0f}
+    ZFW = {result['zfw']:,.0f} lbs
+    """
+    st.code(zfw_formula + "\n" + zfw_calc)
+    
+    # Show ZFW limit check if available
     if "ZFW_LIMIT" in s["aircraft_data"][tail]:
         zfw_limit = s["aircraft_data"][tail]["ZFW_LIMIT"]
         zfw_status = "✓" if result['zfw'] <= zfw_limit else "❌"
-        st.write(f"**ZFW Limit**: {zfw_limit:.0f} lbs {zfw_status}")
+        st.write(f"**ZFW Limit Check**: {result['zfw']:,.0f} ≤ {zfw_limit:,.0f} lbs {zfw_status}")
     
-    st.write(f"**Total Weight**: {result['total_weight']:.0f} lbs (Max: {mtow_limit:.0f} lbs)")
-    st.write(f"**CG**: {result['cg']:.2f} ft (Range: {s['CG_MIN']}-{s['CG_MAX']})")
-    st.write(f"**Stab Trim**: {result['stab']}°")
+    # Total Weight Calculation
+    st.markdown("#### Total Weight")
+    st.markdown("*The total aircraft weight including passengers, cargo, and fuel that must remain below Maximum Takeoff Weight (MTOW) for safe operation.*")
+    total_weight_formula = "Total Weight = ZFW + Fuel"
+    total_weight_calc = f"""
+    Total Weight = {result['zfw']:,.0f} + {steps['fuel']:,.0f}
+    Total Weight = {result['total_weight']:,.0f} lbs
+    """
+    st.code(total_weight_formula + "\n" + total_weight_calc)
     
-    # Show landing weight if available
+    # Show MTOW limit check
+    mtow_status = "✓" if result['total_weight'] <= mtow_limit else "❌"
+    st.write(f"**MTOW Limit Check**: {result['total_weight']:,.0f} ≤ {mtow_limit:,.0f} lbs {mtow_status}")
+    
+    # Landing Weight Estimation
     if result['landing_weight']:
+        st.markdown("#### Estimated Landing Weight")
+        st.markdown("*The projected weight of the aircraft at landing, calculated by subtracting estimated fuel burn from takeoff weight, must remain below maximum landing weight limits to prevent structural damage.*")
+        landing_formula = "Landing Weight = Total Weight - (Fuel × 0.75)"
+        landing_calc = f"""
+        Landing Weight = {result['total_weight']:,.0f} - ({steps['fuel']:,.0f} × 0.75)
+        Landing Weight = {result['landing_weight']:,.0f} lbs
+        """
+        st.code(landing_formula + "\n" + landing_calc)
+        
+        # Show Landing Weight limit check
         landing_limit = s["aircraft_data"][tail]["LANDING_LIMIT"]
         landing_status = "✓" if result['landing_weight'] <= landing_limit else "❌"
-        st.write(f"**Est. Landing Weight**: {result['landing_weight']:.0f} lbs (Max: {landing_limit:.0f} lbs) {landing_status}")
+        st.write(f"**Landing Weight Limit Check**: {result['landing_weight']:,.0f} ≤ {landing_limit:,.0f} lbs {landing_status}")
     
-    st.write(f"**Load Instructions**: Bags - Fwd: {result['distrib']['fwd']:.0f} lbs, Aft: {result['distrib']['aft']:.0f} lbs")
-    st.write(f"**Safe**: {result['safe']}")
-
-    # Formulas
-    st.subheader("Formulas Used")
-    st.write("""
-    - **ZFW** = OEW + Pax + Bags
-    - **Moment** = Weight × Arm
-    - **CG** = Σ(Moment) / Σ(Weight)
-    - **Stab Trim** = f(CG) [Table Lookup]
-    - **Bag Move** = (Target CG - Current CG) × Total Weight / (Aft Arm - Fwd Arm)
-    - **Est. Landing Weight** = Total Weight - (Fuel × 0.75)
-    """)
+    # Center of Gravity Calculation
+    st.markdown("#### Center of Gravity (CG)")
+    st.markdown("*The point where the aircraft would balance if suspended, calculated as total moment divided by total weight, must stay within prescribed limits for safe handling and stability.*")
+    cg_formula = "CG = Total Moment / Total Weight"
+    cg_calc = f"""
+    CG = {steps['total_moment']:,.0f} / {result['total_weight']:,.0f}
+    CG = {result['cg']:.2f} ft
+    """
+    st.code(cg_formula + "\n" + cg_calc)
+    
+    # Show CG limit check
+    cg_status = "✓" if s["CG_MIN"] <= result['cg'] <= s["CG_MAX"] else "❌"
+    st.write(f"**CG Limit Check**: {s['CG_MIN']} ≤ {result['cg']:.2f} ≤ {s['CG_MAX']} ft {cg_status}")
+    
+    # Bag Movement Optimization (if any)
+    if steps["bag_move"] > 0:
+        st.markdown("#### Bag Movement Optimization")
+        st.markdown("*The process of shifting bags between forward and aft compartments to adjust the aircraft's CG toward a target value, typically an aft position for improved fuel efficiency.*")
+        bag_move_formula = "Move = (Target CG - Initial CG) × Total Weight / (Aft Arm - Fwd Arm)"
+        bag_move_calc = f"""
+        Move = ({s['target_cg']} - {steps['initial_cg']:.2f}) × {result['total_weight']:,.0f} / ({s['compartment_arms']['aft']} - {s['compartment_arms']['fwd']})
+        Move = {steps['bag_move']:,.0f} lbs
+        """
+        st.code(bag_move_formula + "\n" + bag_move_calc)
+        
+        # Show bag distribution
+        st.write(f"**Load Instructions**: Bags - Fwd: {result['distrib']['fwd']:,.0f} lbs, Aft: {result['distrib']['aft']:,.0f} lbs")
+    else:
+        st.write(f"**Load Instructions**: Bags - Fwd: {result['distrib']['fwd']:,.0f} lbs, Aft: {result['distrib']['aft']:,.0f} lbs")
+    
+    # Stabilizer Trim
+    st.markdown("#### Stabilizer Trim Setting")
+    st.markdown("*The angle setting for the horizontal stabilizer that provides the correct aerodynamic force to balance the aircraft at its current CG position, ensuring level flight.*")
+    st.write(f"**Stab Trim**: {result['stab']}° (lookup from {int(result['cg'])})")
+    
+    # Overall Safety Check
+    st.markdown("#### Overall Safety Check")
+    st.markdown("*A comprehensive verification that all aircraft weight and balance parameters (ZFW, Total Weight, Landing Weight, CG) are within operational limits for safe flight.*")
+    st.write(f"**Safe to Fly**: {result['safe']}")
 
     # CG Plot
     st.subheader("CG Visualization")
