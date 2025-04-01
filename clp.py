@@ -323,15 +323,96 @@ with tab1:
         """
         st.code(bag_move_formula + "\n" + bag_move_calc)
         
-        # Show bag distribution
-        st.write(f"**Load Instructions**: Bags - Fwd: {result['distrib']['fwd']:,.0f} lbs, Aft: {result['distrib']['aft']:,.0f} lbs")
+        # Calculate bag distribution by type
+        # Calculate how many bags to move from forward to aft
+        std_bag_weight = s["bag_weights"]["standard"]
+        heavy_bag_weight = s["bag_weights"]["heavy"]
+        total_std_bags = bags["standard"]
+        total_heavy_bags = bags["heavy"]
+        
+        # Prioritize moving heavy bags first for efficiency (fewer bags to move)
+        move_weight_remaining = steps["bag_move"]
+        heavy_bags_to_move = min(total_heavy_bags, move_weight_remaining // heavy_bag_weight)
+        move_weight_remaining -= heavy_bags_to_move * heavy_bag_weight
+        std_bags_to_move = min(total_std_bags, move_weight_remaining // std_bag_weight)
+        
+        # Calculate remaining bags in forward compartment
+        fwd_heavy_bags = total_heavy_bags - heavy_bags_to_move
+        fwd_std_bags = total_std_bags - std_bags_to_move
+        
+        # Calculate weights for display
+        fwd_heavy_weight = fwd_heavy_bags * heavy_bag_weight
+        fwd_std_weight = fwd_std_bags * std_bag_weight
+        aft_heavy_weight = heavy_bags_to_move * heavy_bag_weight
+        aft_std_weight = std_bags_to_move * std_bag_weight
+        
+        # Show bag distribution with counts and weights
+        st.markdown("#### Load Instructions for Ground Handlers")
+        st.markdown("*Detailed breakdown of bag counts and weights for loading in each compartment:*")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Forward Compartment:**")
+            st.markdown(f"- Heavy Bags: {fwd_heavy_bags:.0f} bags ({fwd_heavy_weight:,.0f} lbs)")
+            st.markdown(f"- Standard Bags: {fwd_std_bags:.0f} bags ({fwd_std_weight:,.0f} lbs)")
+            st.markdown(f"- **Total Forward: {fwd_heavy_bags + fwd_std_bags:.0f} bags ({result['distrib']['fwd']:,.0f} lbs)**")
+            
+        with col2:
+            st.markdown("**Aft Compartment:**")
+            st.markdown(f"- Heavy Bags: {heavy_bags_to_move:.0f} bags ({aft_heavy_weight:,.0f} lbs)")
+            st.markdown(f"- Standard Bags: {std_bags_to_move:.0f} bags ({aft_std_weight:,.0f} lbs)")
+            st.markdown(f"- **Total Aft: {heavy_bags_to_move + std_bags_to_move:.0f} bags ({result['distrib']['aft']:,.0f} lbs)**")
     else:
-        st.write(f"**Load Instructions**: Bags - Fwd: {result['distrib']['fwd']:,.0f} lbs, Aft: {result['distrib']['aft']:,.0f} lbs")
+        # No optimization needed, all bags go in forward compartment
+        # Calculate weights for display
+        total_std_bags = bags["standard"]
+        total_heavy_bags = bags["heavy"]
+        fwd_std_weight = total_std_bags * s["bag_weights"]["standard"]
+        fwd_heavy_weight = total_heavy_bags * s["bag_weights"]["heavy"]
+        
+        st.markdown("#### Load Instructions for Ground Handlers")
+        st.markdown("*Detailed breakdown of bag counts and weights for loading in each compartment:*")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Forward Compartment:**")
+            st.markdown(f"- Heavy Bags: {total_heavy_bags:.0f} bags ({fwd_heavy_weight:,.0f} lbs)")
+            st.markdown(f"- Standard Bags: {total_std_bags:.0f} bags ({fwd_std_weight:,.0f} lbs)")
+            st.markdown(f"- **Total Forward: {total_heavy_bags + total_std_bags:.0f} bags ({result['distrib']['fwd']:,.0f} lbs)**")
+            
+        with col2:
+            st.markdown("**Aft Compartment:**")
+            st.markdown("- Heavy Bags: 0 bags (0 lbs)")
+            st.markdown("- Standard Bags: 0 bags (0 lbs)")
+            st.markdown("- **Total Aft: 0 bags (0 lbs)**")
     
     # Stabilizer Trim
     st.markdown("#### Stabilizer Trim Setting")
     st.markdown("*The angle setting for the horizontal stabilizer that provides the correct aerodynamic force to balance the aircraft at its current CG position, ensuring level flight.*")
     st.write(f"**Stab Trim**: {result['stab']}° (lookup from {int(result['cg'])})")
+    
+    # Display the mock stab trim table for reference
+    st.markdown("**Stabilizer Trim Lookup Table (MOCK DATA)**")
+    st.markdown("*Note: This is mock data for demonstration purposes only. Real A220 stabilizer trim values should be obtained from the Flight Crew Operating Manual (FCOM).*")
+    
+    # Create a DataFrame for the mock stab trim table
+    stab_data = []
+    for cg in range(60, 65):  # Covering a range slightly beyond our CG limits
+        stab_data.append({"CG Position (ft)": cg, "Stab Trim Setting (°)": s["stab_table"].get(cg, "N/A")})
+    
+    # Highlight the row corresponding to the current CG position
+    current_int_cg = int(result["cg"])
+    stab_df = pd.DataFrame(stab_data)
+    
+    # Function to highlight the row with the current CG
+    def highlight_current_cg(row):
+        if row["CG Position (ft)"] == current_int_cg:
+            return ['background-color: rgba(144, 238, 144, 0.5)'] * len(row)
+        return [''] * len(row)
+    
+    # Apply styling and display table
+    styled_df = stab_df.style.apply(highlight_current_cg, axis=1)
+    st.dataframe(styled_df, use_container_width=True)
     
     # Overall Safety Check
     st.markdown("#### Overall Safety Check")
