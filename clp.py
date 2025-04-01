@@ -163,81 +163,172 @@ def calculate_wab(tail, pax_zones, bags, fuel):
     }
 
 def draw_aircraft_visualization(zone_arms, compartment_arms, fuel_arm, oew_arm, view='side', cg=None, cg_min=None, cg_max=None):
-    # A220-300 actual dimensions (in feet)
-    # Length: 127.0 ft
-    # Wingspan: 115.2 ft
-    # Height: 37.7 ft
-    # Fuselage diameter: 11.5 ft
-    # Cabin width: 10.8 ft
+    # Create figure with a better aspect ratio
+    fig, ax = plt.subplots(figsize=(12, 5))
     
-    # Create figure with a 16:9 aspect ratio
-    fig, ax = plt.subplots(figsize=(12, 6))
-    
-    # Set the datum point (typically at the nose or a specific point on the aircraft)
+    # Set the datum point (at the nose)
     datum_x = 0
     
+    # Define a more stylized aircraft shape
     if view == 'side':
-        # Draw basic aircraft shape (simplified side view)
-        # Fuselage
-        fuselage_length = 127.0
-        fuselage_height = 37.7
-        nose_height = 12  # Approximate height at nose
+        # Simplified but recognizable side profile
+        fuselage_length = 100  # Use a standardized length for better visibility
         
-        # Draw main fuselage
-        ax.plot([datum_x, fuselage_length], [nose_height, nose_height], 'k-', linewidth=2)  # Bottom
-        ax.plot([datum_x, fuselage_length], [nose_height + fuselage_height, nose_height + fuselage_height], 'k-', linewidth=2)  # Top
+        # Define points for a more stylized aircraft
+        nose_x = datum_x
+        nose_y = 0
         
-        # Draw nose
-        ax.plot([datum_x, 20], [nose_height, nose_height + fuselage_height], 'k-', linewidth=2)
+        fuselage_bottom = [
+            (nose_x, nose_y),
+            (nose_x + 10, nose_y - 2),
+            (nose_x + 20, nose_y - 3),
+            (nose_x + fuselage_length - 20, nose_y - 3),
+            (nose_x + fuselage_length - 10, nose_y - 1),
+            (nose_x + fuselage_length, nose_y)
+        ]
         
-        # Draw tail
-        ax.plot([fuselage_length - 30, fuselage_length], [nose_height + fuselage_height, nose_height + 5], 'k-', linewidth=2)
+        fuselage_top = [
+            (nose_x, nose_y),
+            (nose_x + 10, nose_y + 5),
+            (nose_x + 20, nose_y + 8),
+            (nose_x + fuselage_length - 50, nose_y + 8),
+            (nose_x + fuselage_length - 40, nose_y + 12),  # Tail height
+            (nose_x + fuselage_length - 25, nose_y + 12),  # Tail top
+            (nose_x + fuselage_length - 10, nose_y + 3),
+            (nose_x + fuselage_length, nose_y)
+        ]
         
-        # Draw wing (simplified)
-        wing_span = 115.2
-        wing_position = 40  # Approximate position from nose
-        ax.plot([wing_position, wing_position + wing_span/2], [nose_height + 15, nose_height + 15], 'k-', linewidth=2)
+        # Draw the fuselage as a polygon
+        fuselage_x_bottom, fuselage_y_bottom = zip(*fuselage_bottom)
+        fuselage_x_top, fuselage_y_top = zip(*fuselage_top)
         
-        # Set y-axis limits for side view
-        ax.set_ylim(0, nose_height + fuselage_height + 10)
-        ax.set_ylabel('Height (ft)')
-        ax.set_yticks([])
+        # Complete the fuselage polygon
+        fuselage_x = list(fuselage_x_top) + list(fuselage_x_bottom[::-1])
+        fuselage_y = list(fuselage_y_top) + list(fuselage_y_bottom[::-1])
+        
+        # Draw the main fuselage
+        ax.fill(fuselage_x, fuselage_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Draw the wing
+        wing_front = nose_x + 35
+        wing_length = 25
+        wing_height = -2
+        wing_thickness = 2
+        
+        wing_x = [wing_front, wing_front + wing_length, wing_front + wing_length, wing_front]
+        wing_y = [wing_height, wing_height - 1, wing_height + wing_thickness, wing_height + wing_thickness]
+        ax.fill(wing_x, wing_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Set axis limits for side view
+        ax.set_ylim(-10, 20)
         
     else:  # top view
-        # Draw basic aircraft shape (simplified top view)
-        fuselage_length = 127.0
-        fuselage_width = 11.5  # Actual fuselage diameter
-        nose_width = 3.0  # Approximate width at nose
+        # Simplified but recognizable top view
+        fuselage_length = 100  # Use a standardized length
         
-        # Draw main fuselage
-        ax.plot([datum_x, fuselage_length], [0, 0], 'k-', linewidth=2)  # Centerline
-        ax.plot([datum_x, fuselage_length], [fuselage_width/2, fuselage_width/2], 'k-', linewidth=2)  # Top
-        ax.plot([datum_x, fuselage_length], [-fuselage_width/2, -fuselage_width/2], 'k-', linewidth=2)  # Bottom
+        # Define key points
+        nose_x = datum_x
+        center_y = 0
         
-        # Draw nose
-        ax.plot([datum_x, 20], [0, nose_width/2], 'k-', linewidth=2)
-        ax.plot([datum_x, 20], [0, -nose_width/2], 'k-', linewidth=2)
+        # Create fuselage shape - smoother curves for the top view
+        fuselage_width = 8
         
-        # Draw tail
-        ax.plot([fuselage_length - 30, fuselage_length], [fuselage_width/2, 0], 'k-', linewidth=2)
-        ax.plot([fuselage_length - 30, fuselage_length], [-fuselage_width/2, 0], 'k-', linewidth=2)
+        # Create a stylized top view with curved fuselage and wings
+        fuselage_outline = []
         
-        # Draw wings (simplified)
-        wing_span = 115.2
-        wing_position = 40  # Approximate position from nose
-        ax.plot([wing_position, wing_position + wing_span/2], [0, 0], 'k-', linewidth=2)
-        ax.plot([wing_position, wing_position + wing_span/2], [fuselage_width/2, fuselage_width/2], 'k-', linewidth=2)
-        ax.plot([wing_position, wing_position + wing_span/2], [-fuselage_width/2, -fuselage_width/2], 'k-', linewidth=2)
+        # Top half
+        fuselage_outline.append((nose_x, center_y))  # Nose tip
+        fuselage_outline.append((nose_x + 10, center_y + 2))  # Nose curve
+        fuselage_outline.append((nose_x + 20, center_y + 3.5))  # Forward fuselage
+        fuselage_outline.append((nose_x + 40, center_y + fuselage_width/2))  # Mid fuselage
+        fuselage_outline.append((nose_x + fuselage_length - 30, center_y + fuselage_width/2))  # Aft fuselage
+        fuselage_outline.append((nose_x + fuselage_length - 20, center_y + 3))  # Tail taper
+        fuselage_outline.append((nose_x + fuselage_length - 10, center_y + 1.5))  # Tail taper
+        fuselage_outline.append((nose_x + fuselage_length, center_y))  # Tail tip
         
-        # Set y-axis limits for top view
-        ax.set_ylim(-wing_span/2 - 10, wing_span/2 + 10)
-        ax.set_ylabel('Width (ft)')
+        # Bottom half (mirror of top)
+        fuselage_outline.append((nose_x + fuselage_length - 10, center_y - 1.5))
+        fuselage_outline.append((nose_x + fuselage_length - 20, center_y - 3))
+        fuselage_outline.append((nose_x + fuselage_length - 30, center_y - fuselage_width/2))
+        fuselage_outline.append((nose_x + 40, center_y - fuselage_width/2))
+        fuselage_outline.append((nose_x + 20, center_y - 3.5))
+        fuselage_outline.append((nose_x + 10, center_y - 2))
+        fuselage_outline.append((nose_x, center_y))  # Back to nose tip
+        
+        fuselage_x, fuselage_y = zip(*fuselage_outline)
+        ax.fill(fuselage_x, fuselage_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Draw the wings
+        wing_root_x = nose_x + 40
+        wing_span = 45
+        wing_chord_root = 15
+        wing_chord_tip = 10
+        wing_sweep = 15  # Wing sweep angle for a more realistic shape
+        
+        # Left wing
+        left_wing = [
+            (wing_root_x, center_y - fuselage_width/2),
+            (wing_root_x + wing_sweep, center_y - wing_span),
+            (wing_root_x + wing_sweep + wing_chord_tip, center_y - wing_span),
+            (wing_root_x + wing_chord_root, center_y - fuselage_width/2)
+        ]
+        left_wing_x, left_wing_y = zip(*left_wing)
+        ax.fill(left_wing_x, left_wing_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Right wing
+        right_wing = [
+            (wing_root_x, center_y + fuselage_width/2),
+            (wing_root_x + wing_sweep, center_y + wing_span),
+            (wing_root_x + wing_sweep + wing_chord_tip, center_y + wing_span),
+            (wing_root_x + wing_chord_root, center_y + fuselage_width/2)
+        ]
+        right_wing_x, right_wing_y = zip(*right_wing)
+        ax.fill(right_wing_x, right_wing_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Horizontal stabilizer
+        h_stab_root_x = nose_x + fuselage_length - 25
+        h_stab_span = 20
+        h_stab_chord_root = 8
+        h_stab_chord_tip = 5
+        h_stab_sweep = 10
+        
+        # Left horizontal stabilizer
+        left_h_stab = [
+            (h_stab_root_x, center_y - fuselage_width/4),
+            (h_stab_root_x + h_stab_sweep, center_y - h_stab_span),
+            (h_stab_root_x + h_stab_sweep + h_stab_chord_tip, center_y - h_stab_span),
+            (h_stab_root_x + h_stab_chord_root, center_y - fuselage_width/4)
+        ]
+        left_h_stab_x, left_h_stab_y = zip(*left_h_stab)
+        ax.fill(left_h_stab_x, left_h_stab_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Right horizontal stabilizer
+        right_h_stab = [
+            (h_stab_root_x, center_y + fuselage_width/4),
+            (h_stab_root_x + h_stab_sweep, center_y + h_stab_span),
+            (h_stab_root_x + h_stab_sweep + h_stab_chord_tip, center_y + h_stab_span),
+            (h_stab_root_x + h_stab_chord_root, center_y + fuselage_width/4)
+        ]
+        right_h_stab_x, right_h_stab_y = zip(*right_h_stab)
+        ax.fill(right_h_stab_x, right_h_stab_y, color='lightgray', alpha=0.7, edgecolor='black', linewidth=1.5)
+        
+        # Set axis limits for top view - wider to show the wings
+        ax.set_ylim(-wing_span - 5, wing_span + 5)
     
     # Mark datum point
-    ax.plot(datum_x, 0 if view == 'top' else nose_height, 'ro', label='Datum Point')
-    ax.text(datum_x, -2 if view == 'top' else nose_height - 2, 'Datum', ha='center', va='top')
+    datum_y = 0 if view == 'top' else 0
+    ax.plot(datum_x, datum_y, 'ro', markersize=8, label='Datum Point')
+    ax.text(datum_x, datum_y - 3, 'Datum', ha='center', va='top', fontweight='bold')
     
-    # Mark and label arms
+    # Set the x-axis range - use a standardized length with some padding
+    ax.set_xlim(-10, fuselage_length + 10)
+    
+    # Create reference scale for measurement
+    scale_positions = range(0, int(fuselage_length) + 20, 20)
+    ax.set_xticks(scale_positions)
+    ax.grid(True, linestyle='--', alpha=0.3)
+    
+    # Mark and label arm positions
     arms = {
         'OEW': oew_arm,
         'Fuel': fuel_arm,
@@ -248,49 +339,106 @@ def draw_aircraft_visualization(zone_arms, compartment_arms, fuel_arm, oew_arm, 
         'Aft Cargo': compartment_arms['aft']
     }
     
-    # Colors for different zones
+    # Colors for different zones - use a more distinct color palette
     colors = ['red', 'blue', 'green', 'purple', 'orange', 'brown', 'magenta']
     
-    # Plot each arm point
+    # Calculate adjusted arm positions - map actual arms to our standardized fuselage length
+    # This keeps all the important points visible while making the diagram more readable
+    max_real_arm = max(arms.values())
+    if max_real_arm > 0:
+        arm_scale_factor = (fuselage_length * 0.9) / max_real_arm
+    else:
+        arm_scale_factor = 1
+    
+    # Plot each arm position with scaled positions to fit our diagram
     for (label, arm), color in zip(arms.items(), colors):
-        ax.axvline(x=arm, color=color, linestyle='--', alpha=0.5)
-        y_pos = 0 if view == 'top' else nose_height + fuselage_height/2
-        ax.plot(arm, y_pos, 'o', color=color, label=f'{label} ({arm} ft)')
-        ax.text(arm, y_pos + (2 if view == 'top' else 2), label, ha='center', va='bottom', color=color)
+        # Scale the arm position
+        scaled_arm = arm * arm_scale_factor
+        
+        # Draw vertical reference line
+        ax.axvline(x=scaled_arm, color=color, linestyle='--', alpha=0.6)
+        
+        # Plot point on aircraft
+        y_pos = 0 if view == 'top' else 2
+        ax.plot(scaled_arm, y_pos, 'o', color=color, markersize=8)
+        
+        # Add label - position differently for side vs top view
+        if view == 'side':
+            # On side view, stagger the labels to prevent overlap
+            vertical_offset = 12 + (list(arms.keys()).index(label) % 3) * 2
+            ax.text(scaled_arm, vertical_offset, label, ha='center', va='bottom', color=color, 
+                    fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.2'))
+            ax.text(scaled_arm, vertical_offset - 1.5, f"({arm} ft)", ha='center', va='top', color=color, 
+                    fontsize=8, bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.1'))
+        else:
+            # On top view, alternate labels above and below
+            if list(arms.keys()).index(label) % 2 == 0:
+                vertical_offset = wing_span * 0.6
+                va_align = 'bottom'
+            else:
+                vertical_offset = -wing_span * 0.6
+                va_align = 'top'
+            
+            ax.text(scaled_arm, vertical_offset, f"{label}\n({arm} ft)", ha='center', va=va_align, color=color, 
+                    fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.3'))
     
     # Add CG limits and current CG if provided
     if cg_min is not None and cg_max is not None:
+        # Scale CG limits to match our diagram
+        scaled_cg_min = cg_min * arm_scale_factor
+        scaled_cg_max = cg_max * arm_scale_factor
+        
         # Draw CG limit lines
-        ax.axvline(x=cg_min, color='red', linestyle=':', linewidth=2, label=f'CG Min ({cg_min} ft)')
-        ax.axvline(x=cg_max, color='red', linestyle=':', linewidth=2, label=f'CG Max ({cg_max} ft)')
+        ax.axvline(x=scaled_cg_min, color='red', linestyle=':', linewidth=2.5)
+        ax.axvline(x=scaled_cg_max, color='red', linestyle=':', linewidth=2.5)
+        
+        # Add labels for CG limits
+        min_limit_y = -5 if view == 'top' else -5
+        max_limit_y = -5 if view == 'top' else -5
+        
+        ax.text(scaled_cg_min, min_limit_y, f"Min CG\n{cg_min} ft", ha='center', va='top', color='red', 
+                fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.3'))
+        ax.text(scaled_cg_max, max_limit_y, f"Max CG\n{cg_max} ft", ha='center', va='top', color='red', 
+                fontweight='bold', bbox=dict(facecolor='white', alpha=0.7, boxstyle='round,pad=0.3'))
         
         # Fill the safe CG range
-        y_bottom = -wing_span/2 - 10 if view == 'top' else 0
-        y_top = wing_span/2 + 10 if view == 'top' else nose_height + fuselage_height + 10
-        ax.fill_between([cg_min, cg_max], [y_bottom, y_bottom], [y_top, y_top], 
-                       color='green', alpha=0.1, label='Safe CG Range')
+        y_bottom = -wing_span if view == 'top' else -7
+        y_top = wing_span if view == 'top' else 15
+        ax.fill_between([scaled_cg_min, scaled_cg_max], [y_bottom, y_bottom], [y_top, y_top], 
+                       color='green', alpha=0.1)
     
     if cg is not None:
+        # Scale the CG position
+        scaled_cg = cg * arm_scale_factor
+        
         # Draw current CG line
-        ax.axvline(x=cg, color='blue', linewidth=2, label=f'Current CG ({cg:.2f} ft)')
+        ax.axvline(x=scaled_cg, color='blue', linewidth=2.5)
+        
         # Add a marker at the CG point
-        y_pos = 0 if view == 'top' else nose_height + fuselage_height/2
-        ax.plot(cg, y_pos, 'o', color='blue', markersize=10)
-        ax.text(cg, y_pos + (2 if view == 'top' else 2), 'CG', ha='center', va='bottom', color='blue')
+        cg_y_pos = 0 if view == 'top' else 5
+        ax.plot(scaled_cg, cg_y_pos, 'o', color='blue', markersize=10)
+        
+        # Add CG label
+        cg_label_y = 10 if view == 'top' else 8
+        ax.text(scaled_cg, cg_label_y, f"Current CG\n{cg:.2f} ft", ha='center', va='center', color='blue', 
+                fontweight='bold', bbox=dict(facecolor='white', alpha=0.8, boxstyle='round,pad=0.3'))
     
-    # Add legend
-    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    
-    # Set x-axis limits with some padding
-    ax.set_xlim(-10, fuselage_length + 10)
+    # Add a note about scaled representation
+    note_text = "Note: Arm positions are shown to scale relative to each other, but aircraft dimensions are stylized for clarity."
+    fig.text(0.5, 0.01, note_text, ha='center', fontsize=8, style='italic')
     
     # Add title and labels
     view_title = 'Top' if view == 'top' else 'Side'
-    ax.set_title(f'A220-300 {view_title} View with Weight & Balance Points', pad=20)
-    ax.set_xlabel('Distance from Datum (ft)')
+    ax.set_title(f'A220-300 {view_title} View with Weight & Balance Points', pad=20, fontsize=14, fontweight='bold')
+    ax.set_xlabel('Distance from Datum (ft)', fontsize=12)
     
-    # Add grid
-    ax.grid(True, linestyle='--', alpha=0.3)
+    if view == 'top':
+        ax.set_ylabel('Width (ft)', fontsize=12)
+    else:
+        ax.set_ylabel('Height (ft)', fontsize=12)
+    
+    # Remove the legend as we're now adding labels directly to the diagram
+    # This makes the visualization cleaner and more readable
     
     return fig
 
