@@ -491,6 +491,45 @@ with tab2:
     - **Optimization**: Moving bags between compartments can adjust CG position while keeping total weight constant
     """)
     
+    st.subheader("Seat Maps vs. Zone Approach")
+    st.write("""
+    This PoC uses a simplified three-zone passenger model (A, B, C), but production CLP systems typically use detailed seat maps. Here's how they differ:
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Current Zone Approach (PoC):**")
+        st.markdown("- Divides the cabin into 3 broad zones (A, B, C)")
+        st.markdown("- Each zone has a single arm position (distance from datum)")
+        st.markdown("- All passengers in a zone use that zone's arm")
+        st.markdown("- Simplifies input and calculations")
+        st.markdown("- Less precise CG calculation")
+        
+    with col2:
+        st.markdown("**Seat Map Approach (Production):**")
+        st.markdown("- Uses actual seat layout (e.g., 2-3 configuration)")
+        st.markdown("- Each seat position has its own arm value")
+        st.markdown("- Passenger weight applied at exact seat location")
+        st.markdown("- Considers actual passenger seating")
+        st.markdown("- More precise CG calculation")
+    
+    st.write("""
+    **A220-300 Seat Configuration:**
+    
+    The A220-300 typically has 12-13 rows in a 2-3 configuration (2 seats on left, 3 on right) in the forward cabin, 
+    and 12-14 rows in the aft cabin, for a total of 135-145 seats. Each seat position would have a specific arm value
+    in a production system, allowing for precise CG calculations based on actual passenger seating assignments.
+    
+    **Implementation in Production:**
+    - Integration with reservation system to get actual seat assignments
+    - Seat-specific arm values from the aircraft Weight & Balance Manual
+    - Ability to optimize passenger seating for better CG positioning
+    - Real-time updates as passenger seating changes
+    
+    For this PoC, the three-zone model provides a reasonable approximation while simplifying the interface and calculations.
+    """)
+    
     st.subheader("Mock vs. Real Data")
     st.write("""
     This proof of concept uses a combination of real and mock data. Here's what's authentic and what still needs to be replaced:
