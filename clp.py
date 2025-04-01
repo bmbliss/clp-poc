@@ -265,7 +265,7 @@ with tab1:
     # Show ZFW limit check if available
     if "ZFW_LIMIT" in s["aircraft_data"][tail]:
         zfw_limit = s["aircraft_data"][tail]["ZFW_LIMIT"]
-        zfw_status = "✓" if result['zfw'] <= zfw_limit else "❌"
+        zfw_status = "✓" if result['zfw'] <= zfw_limit else "!"
         st.write(f"**ZFW Limit Check**: {result['zfw']:,.0f} ≤ {zfw_limit:,.0f} lbs {zfw_status}")
     
     # Total Weight Calculation
@@ -279,7 +279,7 @@ with tab1:
     st.code(total_weight_formula + "\n" + total_weight_calc)
     
     # Show MTOW limit check
-    mtow_status = "✓" if result['total_weight'] <= mtow_limit else "❌"
+    mtow_status = "✓" if result['total_weight'] <= mtow_limit else "!"
     st.write(f"**MTOW Limit Check**: {result['total_weight']:,.0f} ≤ {mtow_limit:,.0f} lbs {mtow_status}")
     
     # Landing Weight Estimation
@@ -295,7 +295,7 @@ with tab1:
         
         # Show Landing Weight limit check
         landing_limit = s["aircraft_data"][tail]["LANDING_LIMIT"]
-        landing_status = "✓" if result['landing_weight'] <= landing_limit else "❌"
+        landing_status = "✓" if result['landing_weight'] <= landing_limit else "!"
         st.write(f"**Landing Weight Limit Check**: {result['landing_weight']:,.0f} ≤ {landing_limit:,.0f} lbs {landing_status}")
     
     # Center of Gravity Calculation
@@ -309,7 +309,7 @@ with tab1:
     st.code(cg_formula + "\n" + cg_calc)
     
     # Show CG limit check
-    cg_status = "✓" if s["CG_MIN"] <= result['cg'] <= s["CG_MAX"] else "❌"
+    cg_status = "✓" if s["CG_MIN"] <= result['cg'] <= s["CG_MAX"] else "!"
     st.write(f"**CG Limit Check**: {s['CG_MIN']} ≤ {result['cg']:.2f} ≤ {s['CG_MAX']} ft {cg_status}")
     
     # Bag Movement Optimization (if any)
@@ -398,7 +398,7 @@ with tab1:
     # Create a DataFrame for the mock stab trim table
     stab_data = []
     for cg in range(60, 65):  # Covering a range slightly beyond our CG limits
-        stab_data.append({"CG Position (ft)": cg, "Stab Trim Setting (°)": s["stab_table"].get(cg, "N/A")})
+        stab_data.append({"CG Position (ft)": cg, "Stab Trim Setting (°)": float(s["stab_table"].get(cg, 0))})
     
     # Highlight the row corresponding to the current CG position
     current_int_cg = int(result["cg"])
@@ -457,7 +457,7 @@ with tab1:
     # Add status indicator
     cg_in_limits = min_limit <= cg_value <= max_limit
     status_color = "green" if cg_in_limits else "red"
-    status_text = "✓ Within Limits" if cg_in_limits else "❌ Outside Limits"
+    status_text = "✓ Within Limits" if cg_in_limits else "! Outside Limits"
     ax.text(0.5, y_min + 0.2, status_text, ha='center', color=status_color, fontsize=11, 
             bbox=dict(facecolor='white', alpha=0.8, boxstyle='round,pad=0.5'))
     
