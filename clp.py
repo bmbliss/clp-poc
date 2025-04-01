@@ -340,12 +340,50 @@ with tab1:
 
     # CG Plot
     st.subheader("CG Visualization")
-    fig, ax = plt.subplots()
-    ax.plot([0, 1], [result["cg"], result["cg"]], label="CG")
-    ax.axhline(s["CG_MIN"], color="r", ls="--", label="Limits")
-    ax.axhline(s["CG_MAX"], color="r", ls="--")
-    ax.set_ylim(60, 64)
-    ax.legend()
+    fig, ax = plt.subplots(figsize=(8, 4))
+    
+    # Plot CG line
+    ax.plot([0, 1], [result["cg"], result["cg"]], label="CG", color="blue", linewidth=2)
+    
+    # Plot limit lines
+    ax.axhline(s["CG_MIN"], color="r", ls="--", label="Min Limit", linewidth=1.5)
+    ax.axhline(s["CG_MAX"], color="r", ls="--", label="Max Limit", linewidth=1.5)
+    
+    # Set y-axis range to ensure CG is visible even if outside limits
+    # Add padding above and below to ensure visibility
+    cg_value = result["cg"]
+    min_limit = s["CG_MIN"]
+    max_limit = s["CG_MAX"]
+    
+    # Calculate appropriate y-axis range with padding
+    padding = 0.5  # Half a foot padding
+    y_min = min(cg_value, min_limit) - padding
+    y_max = max(cg_value, max_limit) + padding
+    
+    # Set axis limits and labels
+    ax.set_ylim(y_min, y_max)
+    ax.set_xlim(-0.1, 1.1)
+    ax.set_xlabel("Position", fontsize=10)
+    ax.set_ylabel("Center of Gravity (ft)", fontsize=10)
+    ax.set_title(f"CG Position: {cg_value:.2f} ft (Limits: {min_limit}-{max_limit} ft)", fontsize=12)
+    
+    # Remove x-ticks as they don't represent anything meaningful
+    ax.set_xticks([])
+    
+    # Add a grid for better readability
+    ax.grid(True, linestyle='--', alpha=0.7)
+    
+    # Add status indicator
+    cg_in_limits = min_limit <= cg_value <= max_limit
+    status_color = "green" if cg_in_limits else "red"
+    status_text = "✓ Within Limits" if cg_in_limits else "❌ Outside Limits"
+    ax.text(0.5, y_min + 0.2, status_text, ha='center', color=status_color, fontsize=11, 
+            bbox=dict(facecolor='white', alpha=0.8, boxstyle='round,pad=0.5'))
+    
+    # Improve legend
+    ax.legend(loc='upper right', framealpha=0.9)
+    
+    # Show the plot
     st.pyplot(fig)
 
 with tab2:
@@ -370,6 +408,47 @@ with tab2:
     - **Weight**: Total mass must not exceed structural or performance limits
     - **Balance**: CG must stay within the manufacturer's envelope for stability and control
     - **Optimization**: Moving bags between compartments can adjust CG position while keeping total weight constant
+    """)
+    
+    st.subheader("Mock vs. Real Data")
+    st.write("""
+    This proof of concept uses a combination of real and mock data. Here's what's authentic and what still needs to be replaced:
+    """)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Real Data Currently Used:**")
+        st.markdown("- ✓ Operating Empty Weights (OEW) for both A220 aircraft")
+        st.markdown("- ✓ Maximum Takeoff Weight (MTOW) limits")
+        st.markdown("- ✓ Zero Fuel Weight (ZFW) limits")
+        st.markdown("- ✓ Landing Weight limits")
+        st.markdown("- ✓ Actual payload figures from flight plans")
+    
+    with col2:
+        st.markdown("**Mock Data Needing Replacement:**")
+        st.markdown("- ✗ Aircraft arm positions (OEW arm, fuel arm)")
+        st.markdown("- ✗ Passenger zone arm positions")
+        st.markdown("- ✗ Baggage compartment arm positions")
+        st.markdown("- ✗ CG limits and target CG")
+        st.markdown("- ✗ Stabilizer trim lookup values")
+    
+    st.markdown("**Priority Data Needs:**")
+    st.markdown("""
+    1. **Arm positions** for the A220 - particularly the OEW arm, zone arms, and cargo compartment arms
+    2. **CG envelope limits** (min/max CG) for safe operation
+    3. **Stabilizer trim table** that accurately maps CG to trim settings
+    4. **Airline-specific standard weights** for passengers and baggage
+    5. **Fuel burn profiles** for more accurate landing weight estimation
+    """)
+    
+    st.markdown("**Potential Data Sources:**")
+    st.markdown("""
+    - A220 Weight & Balance Manual
+    - Airbus Flight Crew Operating Manual (FCOM)
+    - Airline Operations Manual
+    - Existing load sheet system data
+    - Airbus technical representatives
     """)
     
     st.subheader("Key Values")
@@ -424,8 +503,6 @@ with tab2:
     
     Note that while these weights are real, the arm positions (balance points) still use mock values as they weren't provided in the source data.
     """)
-    
-    st.write("**Note**: This PoC uses a mix of real weight data and mock arm positions for demonstration purposes.")
 
 with tab3:
     # Settings Tab
