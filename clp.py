@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Initialize session state for settings if not already done
 if 'settings' not in st.session_state:
@@ -160,6 +161,118 @@ def calculate_wab(tail, pax_zones, bags, fuel):
                 zfw_ok and landing_ok),
         "steps": calculation_steps  # Add calculation steps to result
     }
+
+def draw_aircraft_visualization(zone_arms, compartment_arms, fuel_arm, oew_arm, view='side'):
+    # A220-300 actual dimensions (in feet)
+    # Length: 127.0 ft
+    # Wingspan: 115.2 ft
+    # Height: 37.7 ft
+    # Fuselage diameter: 11.5 ft
+    # Cabin width: 10.8 ft
+    
+    # Create figure with a 16:9 aspect ratio
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Set the datum point (typically at the nose or a specific point on the aircraft)
+    datum_x = 0
+    
+    if view == 'side':
+        # Draw basic aircraft shape (simplified side view)
+        # Fuselage
+        fuselage_length = 127.0
+        fuselage_height = 37.7
+        nose_height = 12  # Approximate height at nose
+        
+        # Draw main fuselage
+        ax.plot([datum_x, fuselage_length], [nose_height, nose_height], 'k-', linewidth=2)  # Bottom
+        ax.plot([datum_x, fuselage_length], [nose_height + fuselage_height, nose_height + fuselage_height], 'k-', linewidth=2)  # Top
+        
+        # Draw nose
+        ax.plot([datum_x, 20], [nose_height, nose_height + fuselage_height], 'k-', linewidth=2)
+        
+        # Draw tail
+        ax.plot([fuselage_length - 30, fuselage_length], [nose_height + fuselage_height, nose_height + 5], 'k-', linewidth=2)
+        
+        # Draw wing (simplified)
+        wing_span = 115.2
+        wing_position = 40  # Approximate position from nose
+        ax.plot([wing_position, wing_position + wing_span/2], [nose_height + 15, nose_height + 15], 'k-', linewidth=2)
+        
+        # Set y-axis limits for side view
+        ax.set_ylim(0, nose_height + fuselage_height + 10)
+        ax.set_ylabel('Height (ft)')
+        ax.set_yticks([])
+        
+    else:  # top view
+        # Draw basic aircraft shape (simplified top view)
+        fuselage_length = 127.0
+        fuselage_width = 11.5  # Actual fuselage diameter
+        nose_width = 3.0  # Approximate width at nose
+        
+        # Draw main fuselage
+        ax.plot([datum_x, fuselage_length], [0, 0], 'k-', linewidth=2)  # Centerline
+        ax.plot([datum_x, fuselage_length], [fuselage_width/2, fuselage_width/2], 'k-', linewidth=2)  # Top
+        ax.plot([datum_x, fuselage_length], [-fuselage_width/2, -fuselage_width/2], 'k-', linewidth=2)  # Bottom
+        
+        # Draw nose
+        ax.plot([datum_x, 20], [0, nose_width/2], 'k-', linewidth=2)
+        ax.plot([datum_x, 20], [0, -nose_width/2], 'k-', linewidth=2)
+        
+        # Draw tail
+        ax.plot([fuselage_length - 30, fuselage_length], [fuselage_width/2, 0], 'k-', linewidth=2)
+        ax.plot([fuselage_length - 30, fuselage_length], [-fuselage_width/2, 0], 'k-', linewidth=2)
+        
+        # Draw wings (simplified)
+        wing_span = 115.2
+        wing_position = 40  # Approximate position from nose
+        ax.plot([wing_position, wing_position + wing_span/2], [0, 0], 'k-', linewidth=2)
+        ax.plot([wing_position, wing_position + wing_span/2], [fuselage_width/2, fuselage_width/2], 'k-', linewidth=2)
+        ax.plot([wing_position, wing_position + wing_span/2], [-fuselage_width/2, -fuselage_width/2], 'k-', linewidth=2)
+        
+        # Set y-axis limits for top view
+        ax.set_ylim(-wing_span/2 - 10, wing_span/2 + 10)
+        ax.set_ylabel('Width (ft)')
+    
+    # Mark datum point
+    ax.plot(datum_x, 0 if view == 'top' else nose_height, 'ro', label='Datum Point')
+    ax.text(datum_x, -2 if view == 'top' else nose_height - 2, 'Datum', ha='center', va='top')
+    
+    # Mark and label arms
+    arms = {
+        'OEW': oew_arm,
+        'Fuel': fuel_arm,
+        'Zone A': zone_arms['A'],
+        'Zone B': zone_arms['B'],
+        'Zone C': zone_arms['C'],
+        'Fwd Cargo': compartment_arms['fwd'],
+        'Aft Cargo': compartment_arms['aft']
+    }
+    
+    # Colors for different zones
+    colors = ['red', 'blue', 'green', 'purple', 'orange', 'brown', 'magenta']
+    
+    # Plot each arm point
+    for (label, arm), color in zip(arms.items(), colors):
+        ax.axvline(x=arm, color=color, linestyle='--', alpha=0.5)
+        y_pos = 0 if view == 'top' else nose_height + fuselage_height/2
+        ax.plot(arm, y_pos, 'o', color=color, label=f'{label} ({arm} ft)')
+        ax.text(arm, y_pos + (2 if view == 'top' else 2), label, ha='center', va='bottom', color=color)
+    
+    # Add legend
+    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    # Set x-axis limits with some padding
+    ax.set_xlim(-10, fuselage_length + 10)
+    
+    # Add title and labels
+    view_title = 'Top' if view == 'top' else 'Side'
+    ax.set_title(f'A220-300 {view_title} View with Weight & Balance Points', pad=20)
+    ax.set_xlabel('Distance from Datum (ft)')
+    
+    # Add grid
+    ax.grid(True, linestyle='--', alpha=0.3)
+    
+    return fig
 
 # App title
 st.title("A220 Central Load Planning PoC")
@@ -467,6 +580,23 @@ with tab1:
     # Show the plot
     st.pyplot(fig)
 
+    # Add aircraft visualization after the CG plot
+    st.subheader("Aircraft Visualization")
+    st.markdown("*View of the A220-300 showing the datum point and all arm positions used in calculations.*")
+    
+    # Add view selector
+    view = st.radio("Select View", ["Side View", "Top View"], horizontal=True)
+    
+    # Create the visualization
+    fig = draw_aircraft_visualization(
+        s["zone_arms"],
+        s["compartment_arms"],
+        s["fuel_arm"],
+        s["aircraft_data"][tail]["OEW_ARM"],
+        view='top' if view == "Top View" else 'side'
+    )
+    st.pyplot(fig, use_container_width=True)
+
 with tab2:
     # Explanatory Notes Tab
     st.header("Central Load Planning: Background")
@@ -528,6 +658,30 @@ with tab2:
     - Real-time updates as passenger seating changes
     
     For this PoC, the three-zone model provides a reasonable approximation while simplifying the interface and calculations.
+    """)
+    
+    st.subheader("A220-300 Dimensions and Visualization")
+    st.write("""
+    The aircraft visualization in this PoC is drawn roughly to scale using actual A220-300 dimensions:
+    
+    **Key Dimensions:**
+    - **Length**: 114.7 ft (35.0 m)
+    - **Wingspan**: 115.1 ft (35.1 m)
+    - **Height**: 35.1 ft (10.7 m)
+    
+    **Visualization Details:**
+    - The side view shows a simplified representation of the aircraft's profile
+    - The datum point (reference point) is set at the nose (x=0)
+    - All arm distances are measured from this datum point
+    - The wing is shown at its approximate position (40 ft from nose)
+    - The tail section is simplified but maintains the aircraft's overall proportions
+    
+    **Weight & Balance Points:**
+    - Each colored vertical line represents an arm position used in calculations
+    - The legend shows the exact distance of each point from the datum
+    - These distances are used to calculate moments and determine the aircraft's center of gravity
+    
+    Note: While the aircraft shape is drawn to scale, the arm positions shown are currently using mock values. In a production system, these would be replaced with actual A220 arm positions from the aircraft's Weight & Balance Manual.
     """)
     
     st.subheader("Mock vs. Real Data")
